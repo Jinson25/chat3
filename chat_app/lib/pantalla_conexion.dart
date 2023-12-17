@@ -48,7 +48,7 @@ class PantallaConexion extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundImage: AssetImage('assets/imagen_circulo.png'), // Cambia 'assets/imagen_circulo.png' por la ruta de tu imagen
+              backgroundImage: AssetImage('assets/home.png'), // Cambia 'assets/imagen_circulo.png' por la ruta de tu imagen
             ),
             SizedBox(height: 16),
             Text(

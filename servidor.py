@@ -6,7 +6,8 @@ def handle_client(client_socket, client_address):
         nombre = client_socket.recv(1024).decode('utf-8')
         print(f"Conexión establecida desde {client_address}. Nombre: {nombre}")
 
-        clients.append((nombre, client_socket))
+        if nombre != "#lista_clientes":
+            clients.append((nombre, client_socket))
 
         while True:
             mensaje = client_socket.recv(1024).decode('utf-8')
@@ -39,7 +40,6 @@ def handle_client(client_socket, client_address):
                 break
         client_socket.close()
 
-
 def enviar_mensaje_privado(destinatario, mensaje, remitente):
     destinatario_encontrado = False
     for client in clients:
@@ -54,9 +54,6 @@ def enviar_mensaje_privado(destinatario, mensaje, remitente):
 
     if not destinatario_encontrado:
         print(f"El destinatario '{destinatario}' no se encuentra en la lista de clientes.")
-
-
-
 
 def send_to_all(message, sender_socket):
     if message.startswith("@"):  # Si es un mensaje privado

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'UserListScreen.dart'; // Asegúrate de importar la pantalla de la lista de usuarios
 
 class ChatGUI extends StatefulWidget {
   final String ipAddress;
@@ -22,7 +23,7 @@ class _ChatGUIState extends State<ChatGUI> {
     _initializeSocket();
   }
 
-  void _initializeSocket() async {
+  Future<void> _initializeSocket() async {
     try {
       _socket = await Socket.connect(widget.ipAddress, 5555);
 
@@ -30,28 +31,17 @@ class _ChatGUIState extends State<ChatGUI> {
       _socket.writeln(widget.userName);
 
       // Escucha mensajes del servidor
-      _socket.listen(
-        (List<int> data) {
-          final message = String.fromCharCodes(data);
+      await for (List<int> data in _socket) {
+        final message = String.fromCharCodes(data);
 
-          // Ignora mensajes en blanco
-          if (message.trim().isEmpty) {
-            return;
-          }
+        // Ignora mensajes en blanco
+        if (message.trim().isEmpty) {
+          continue;
+        }
 
-          // Agrega el mensaje a la lista
-          _addMessage(message);
-        },
-        onDone: () {
-          print('Conexión cerrada por el servidor');
-          _socket.destroy();
-        },
-        onError: (error) {
-          print('Error de conexión: $error');
-          _socket.destroy();
-        },
-        cancelOnError: true,
-      );
+        // Agrega el mensaje a la lista
+        _addMessage(message);
+      }
     } catch (e) {
       print('Error al conectar al servidor: $e');
       showDialog(
@@ -59,7 +49,8 @@ class _ChatGUIState extends State<ChatGUI> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('Error'),
-            content: Text('Error al conectar al servidor. Asegúrate de que la dirección IP y el puerto son correctos.'),
+            content: Text(
+                'Error al conectar al servidor. Asegúrate de que la dirección IP y el puerto son correctos.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -73,6 +64,15 @@ class _ChatGUIState extends State<ChatGUI> {
         },
       );
     }
+  }
+
+  void _showUserListScreen(List<String> userList) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserListScreen(userList: userList),
+      ),
+    );
   }
 
   @override
@@ -106,6 +106,42 @@ class _ChatGUIState extends State<ChatGUI> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('QUINTO A'),
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(Icons.people),
+              onPressed: () async {
+                // Envía el mensaje #lista_clientes para obtener la lista de usuarios
+                _socket.writeln("#lista_clientes");
+
+                // Lista temporal para almacenar usuarios
+                List<String> userList = [];
+
+                // Escucha mensajes del servidor
+                await for (List<int> data in _socket) {
+                  final message = String.fromCharCodes(data);
+
+                  // Ignora mensajes en blanco
+                  if (message.trim().isEmpty) {
+                    continue;
+                  }
+
+                  // Verifica si la respuesta comienza con "#lista_clientes"
+                  if (message.startsWith("#lista_clientes")) {
+                    // Extrae la lista de usuarios
+                    userList = message.split(":")[1].trim().split(", ");
+
+                    // Actualiza la lista de usuarios y navega a la nueva pantalla
+                    setState(() {
+                      _showUserListScreen(userList);
+                    });
+
+                    // Sal del bucle para dejar de escuchar
+                    break;
+                  }
+                }
+              },
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -127,7 +163,8 @@ class _ChatGUIState extends State<ChatGUI> {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: InputDecoration(labelText: 'Escribe un mensaje'),
+                      decoration:
+                          InputDecoration(labelText: 'Escribe un mensaje'),
                     ),
                   ),
                   SizedBox(width: 16),
